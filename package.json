@@ -1,0 +1,34 @@
+{
+  "name": "basepie",
+  "version": "0.1.0",
+  "description": "Base Pies - M1-style portfolios on Base L2",
+  "private": true,
+  "scripts": {
+    "test": "forge test",
+    "build": "forge build",
+    "deploy:sepolia": "forge script scripts/Deploy.s.sol --rpc-url base-sepolia --broadcast",
+    "verify": "forge verify-contract",
+    "keeper:dev": "cd keeper && npm run dev",
+    "subgraph:build": "cd subgraph && graph build",
+    "app:dev": "cd app && npm run dev"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/basepie/basepie.git"
+  },
+  "keywords": [
+    "defi",
+    "portfolio",
+    "base",
+    "erc4626",
+    "vault"
+  ],
+  "author": "BasePie Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@openzeppelin/contracts": "^5.0.0",
+    "@chainlink/contracts": "^0.8.0",
+    "prettier": "^3.0.0",
+    "prettier-plugin-solidity": "^1.2.0"
+  }
+}
