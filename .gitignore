@@ -1,0 +1,50 @@
+# Compiler files
+cache/
+out/
+artifacts/
+
+# Ignores development broadcast logs
+broadcast/
+!/broadcast
+/broadcast/*/31337/
+/broadcast/**/dry-run/
+
+# Docs build output (not our docs folder)
+docs-build/
+
+# Dotenv file
+.env
+.env.local
+
+# Node modules
+node_modules/
+package-lock.json
+yarn.lock
+
+# Coverage
+coverage/
+coverage.json
+lcov.info
+
+# Typechain
+typechain/
+typechain-types/
+
+# Hardhat files
+cache_hardhat/
+artifacts_hardhat/
+
+# DS_Store
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Testing
+test-results/
+*.log
+
+# Build outputs
+dist/
+build/
