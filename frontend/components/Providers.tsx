@@ -6,9 +6,13 @@ import { WagmiProvider } from "wagmi";
 import { mainnet, polygon, optimism, arbitrum, base } from "wagmi/chains";
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 
+// Use a demo projectId for development if not configured
+// Get your own at https://cloud.walletconnect.com
+const projectId = process.env.NEXT_PUBLIC_PROJECT_ID || "2f5c8a23e7a9b1d4e6f3a8b5c9d2e1f4";
+
 const config = getDefaultConfig({
   appName: "My RainbowKit App",
-  projectId: process.env.NEXT_PUBLIC_PROJECT_ID!,
+  projectId: projectId,
   chains: [mainnet, polygon, optimism, arbitrum, base],
   ssr: true, // If your dApp uses server side rendering (SSR)
 });
