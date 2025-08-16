@@ -72,6 +72,7 @@ export function MockProvider({ children }: { children: React.ReactNode }) {
     // Clear and regenerate mock data
     const newPies = generatePies(10)
     // Reset store (would need to add reset method to MockContractStore)
+    localStorage.removeItem('mockConfig')
     window.location.reload() // Simple reset for now
   }, [])
 
@@ -118,7 +119,7 @@ export function MockProvider({ children }: { children: React.ReactNode }) {
   return (
     <MockContext.Provider value={contextValue}>
       {children}
-      {config.showDevTools && <MockDevTools />}
+      {config.showDevTools && config.enabled && <MockDevTools />}
     </MockContext.Provider>
   )
 }

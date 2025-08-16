@@ -21,10 +21,22 @@ const queryClient = new QueryClient();
 
 // SCAFFOLD: Wrap with MockProvider and conditionally render RainbowKit
 export function Providers({ children }: { children: React.ReactNode }) {
-  // TODO: Check mock config to conditionally render providers
-  // TODO: In mock mode, skip RainbowKit but keep Wagmi for types
-  throw new Error('Not implemented: Providers with MockProvider integration')
+  const isMockMode = process.env.NEXT_PUBLIC_ENABLE_MOCKS === 'true';
   
+  // In mock mode, wrap with MockProvider and skip RainbowKit
+  if (isMockMode) {
+    return (
+      <MockProvider>
+        <WagmiProvider config={config}>
+          <QueryClientProvider client={queryClient}>
+            {children}
+          </QueryClientProvider>
+        </WagmiProvider>
+      </MockProvider>
+    );
+  }
+  
+  // Production mode - full providers without MockProvider
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
