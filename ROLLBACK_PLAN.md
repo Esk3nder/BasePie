@@ -31,6 +31,36 @@ cast send <VAULT_ADDRESS> "revokeRole(bytes32,address)" \
 cast call <REBALANCER_ADDRESS> "lastProcessedWindow(address)" <VAULT_ADDRESS>
 ```
 
+### OracleModule-Specific Rollback
+
+#### Critical Issues Requiring Immediate Rollback:
+- Incorrect price normalization causing NAV miscalculation
+- Chainlink feed integration failures
+- Decimal conversion errors leading to value loss
+- Health check logic blocking all price fetches
+- Gas costs exceeding 100k for batch operations
+
+#### Rollback Steps:
+```bash
+# 1. Deploy emergency MockOracle as temporary replacement
+# MockOracle provides hardcoded safe prices for critical operations
+
+# 2. Update BatchRebalancer to use MockOracle
+cast send <BATCH_REBALANCER> "setOracleModule(address)" <MOCK_ORACLE> --private-key $ADMIN_KEY
+
+# 3. Verify price feeds working
+cast call <MOCK_ORACLE> "getUsdPrice(address)" <WETH_ADDRESS>
+
+# 4. Deploy fixed OracleModule
+forge script script/Deploy.s.sol --rpc-url $RPC --broadcast
+
+# 5. Re-register Chainlink feeds
+cast send <NEW_ORACLE> "registerFeed(address,address)" <TOKEN> <FEED> --private-key $ADMIN_KEY
+
+# 6. Switch BatchRebalancer to new Oracle
+cast send <BATCH_REBALANCER> "setOracleModule(address)" <NEW_ORACLE> --private-key $ADMIN_KEY
+```
+
 ### 1. Pre-Deployment Rollback (Development)
 If issues are discovered during testing before mainnet deployment:
 

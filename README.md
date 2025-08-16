@@ -54,7 +54,7 @@ Base Pies is a non-custodial, window-rebalanced portfolio vault system built on 
 - **PieVault**: ERC-4626 async vault with request/claim lifecycle
 - **BatchRebalancer**: Computes deltas and executes rebalancing trades
 - **TradeAdapter**: Interfaces with Uniswap Universal Router and 0x
-- **OracleModule**: Chainlink price feeds with TWAP fallback
+- **OracleModule**: Chainlink price feeds integration for Base network with health monitoring, decimal normalization, and USDC special handling
 - **KeeperGate**: Window scheduling and automation triggers
 
 ## Development
@@ -110,6 +110,32 @@ forge test --gas-report
 
 # Run invariant tests
 forge test --match-test invariant
+```
+
+## Oracle Configuration
+
+The OracleModule provides reliable USD price discovery for portfolio valuation and rebalancing:
+
+### Features
+- **Chainlink Integration**: Primary price feeds from Chainlink on Base network
+- **Decimal Normalization**: All prices normalized to 18 decimals for consistency
+- **Health Monitoring**: Staleness (30 min) and deviation (2%) checks
+- **USDC Optimization**: Hardcoded $1 for USDC to save gas
+- **Batch Operations**: Efficient multi-token price fetching
+
+### Supported Feeds (Base Mainnet)
+- ETH/USD: `0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70`
+- cbETH/USD: `0xd7818272B9e248357d13057AAb0B417aF31E817d`
+- USDC/USD: Special handling (always $1)
+
+### Configuration
+```solidity
+// Register new price feed
+oracleModule.registerFeed(tokenAddress, chainlinkFeedAddress);
+
+// Adjust health parameters
+oracleModule.setStalenessThreshold(1800); // 30 minutes
+oracleModule.setMaxDeviation(200); // 2% in basis points
 ```
 
 ## Security
