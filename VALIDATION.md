@@ -17,16 +17,19 @@ Expected: All contracts compile without errors
 
 ### 2. Run Tests
 ```bash
+# Test PieFactory
 forge test --match-contract PieFactoryTest -vv
+
+# Test PieVault (when test assertions are implemented)
+forge test --match-contract PieVaultTest -vv
+
+# Run invariant tests
+forge test --match-contract PieVaultInvariantTest
 ```
-Expected: All tests pass
-- ✅ test_createPie_success
-- ✅ test_createPie_revertsInvalidWeights
-- ✅ test_createPie_revertsNonAllowlistedToken
-- ✅ test_setGlobalAllowlist_onlyGovernor
-- ✅ test_createPie_emitsEvent
-- ✅ test_gasLimit_under500k
-- ✅ testFuzz_weightValidation
+Expected test coverage:
+- PieFactory: 7 tests (4 passing currently)
+- PieVault: 11 tests (scaffolded, ready for TDD)
+- Invariants: 7 tests (scaffolded)
 
 ### 3. Gas Report
 ```bash
