@@ -4,11 +4,11 @@ pragma solidity ^0.8.24;
 import {Test} from "forge-std/Test.sol";
 import {PieFactory} from "../contracts/PieFactory.sol";
 import {IPieFactory} from "../contracts/interfaces/IPieFactory.sol";
-import {MockPieVault} from "./mocks/MockPieVault.sol";
+import {PieVault} from "../contracts/PieVault.sol";
 
 contract PieFactoryTest is Test {
     PieFactory public factory;
-    MockPieVault public vaultImpl;
+    PieVault public vaultImpl;
     
     // Test constants
     address public constant USDC = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913; // Base USDC
@@ -26,8 +26,8 @@ contract PieFactoryTest is Test {
         vm.prank(governor);
         factory = new PieFactory();
         
-        // Deploy mock vault implementation
-        vaultImpl = new MockPieVault();
+        // Deploy vault implementation
+        vaultImpl = new PieVault();
         
         // Set up vault implementation
         vm.prank(governor);
