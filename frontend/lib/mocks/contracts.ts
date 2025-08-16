@@ -1,4 +1,4 @@
-import { generatePie, generateWindow, generatePies } from './generators'
+import { generatePie, generateWindow } from './generators'
 import type { MockPie, MockPosition, MockTransaction, MockWindow } from './types'
 
 // Get mock config from environment or defaults
@@ -16,6 +16,7 @@ class MockContractStore {
 
   constructor() {
     // Initialize with some default pies
+    const { generatePies } = require('./generators')
     const initialPies = generatePies(10)
     initialPies.forEach(pie => this.pies.set(pie.id, pie))
   }
