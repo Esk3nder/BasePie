@@ -1,9 +1,35 @@
-# Rollback Plan - PieFactory Implementation
+# Rollback Plan - BasePie Smart Contracts
 
 ## Overview
-This document outlines the rollback procedures for the PieFactory smart contract implementation.
+This document outlines the rollback procedures for the BasePie smart contract suite including PieFactory, PieVault, and BatchRebalancer implementations.
 
 ## Rollback Scenarios
+
+### BatchRebalancer-Specific Rollback
+
+#### Critical Issues Requiring Immediate Rollback:
+- Incorrect NAV calculations causing value loss
+- Trade execution failures causing vault lockup  
+- Oracle manipulation vulnerabilities
+- Window processing causing state corruption
+
+#### Rollback Steps:
+```bash
+# 1. Pause the rebalancer immediately
+cast send <REBALANCER_ADDRESS> "pause()" --private-key $GOVERNOR_KEY
+
+# 2. Revoke keeper roles to prevent window processing
+cast send <REBALANCER_ADDRESS> "revokeRole(bytes32,address)" \
+  $(cast keccak "KEEPER_ROLE") <KEEPER_ADDRESS> --private-key $GOVERNOR_KEY
+
+# 3. Remove rebalancer role from vaults
+cast send <VAULT_ADDRESS> "revokeRole(bytes32,address)" \
+  $(cast keccak "REBALANCER_ROLE") <REBALANCER_ADDRESS> --private-key $GOVERNOR_KEY
+
+# 4. If mid-window, manually settle pending requests
+# Check last processed window for each vault
+cast call <REBALANCER_ADDRESS> "lastProcessedWindow(address)" <VAULT_ADDRESS>
+```
 
 ### 1. Pre-Deployment Rollback (Development)
 If issues are discovered during testing before mainnet deployment:

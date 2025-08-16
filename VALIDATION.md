@@ -1,4 +1,4 @@
-# PieFactory Validation Checklist
+# BasePie Validation Checklist
 
 ## Prerequisites
 ```bash
@@ -17,6 +17,9 @@ Expected: All contracts compile without errors
 
 ### 2. Run Tests
 ```bash
+# Test BatchRebalancer
+forge test --match-contract BatchRebalancerTest -vv
+
 # Test PieFactory
 forge test --match-contract PieFactoryTest -vv
 
@@ -25,17 +28,28 @@ forge test --match-contract PieVaultTest -vv
 
 # Run invariant tests
 forge test --match-contract PieVaultInvariantTest
+
+# Run all tests
+forge test
 ```
 Expected test coverage:
+- BatchRebalancer: 8 tests (✅ all passing)
 - PieFactory: 7 tests (4 passing currently)
 - PieVault: 11 tests (scaffolded, ready for TDD)
 - Invariants: 7 tests (scaffolded)
 
 ### 3. Gas Report
 ```bash
+# BatchRebalancer gas report
+forge test --match-contract BatchRebalancerTest --gas-report
+
+# PieFactory gas report
 forge test --match-contract PieFactoryTest --gas-report
 ```
-Expected: createPie gas usage < 500,000
+Expected gas usage:
+- BatchRebalancer.processWindow: < 100,000
+- BatchRebalancer.computeRebalanceDeltas: < 50,000
+- PieFactory.createPie: < 500,000
 
 ### 4. Coverage Report
 ```bash
