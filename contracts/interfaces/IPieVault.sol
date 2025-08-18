@@ -84,4 +84,5 @@ interface IPieVault is IERC20, IERC4626 {
     function mgmtFeeBps() external view returns (uint16);
     function slippageBps() external view returns (uint16);
     function maxTradeBpsPerWindow() external view returns (uint16);
+    function rebalanceWindowStartSecUTC() external view returns (uint256);
 }

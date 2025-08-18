@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {Script, console} from "forge-std/Script.sol";
 import {PieFactory} from "../contracts/PieFactory.sol";
+import {PieVault} from "../contracts/PieVault.sol";
 
 contract DeployPieFactory is Script {
     // Base mainnet addresses
@@ -24,11 +25,11 @@ contract DeployPieFactory is Script {
         
         vm.startBroadcast(deployerPrivateKey);
         
-        // Deploy factory
-        factory = address(new PieFactory());
+        // Deploy vault implementation
+        address vaultImpl = address(new PieVault());
         
-        // TODO: Set vault implementation once PieVault is created
-        // PieFactory(factory).setVaultImplementation(vaultImpl);
+        // Deploy factory with vault implementation
+        factory = address(new PieFactory(vaultImpl));
         
         // TODO: Set initial allowlist
         // PieFactory(factory).setGlobalAllowlist(USDC, true);
