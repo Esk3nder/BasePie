@@ -1,235 +1,171 @@
-# Rollback Plan - BasePie Smart Contracts
+# KeeperGate Implementation - Rollback Plan
 
-## Overview
-This document outlines the rollback procedures for the BasePie smart contract suite including PieFactory, PieVault, and BatchRebalancer implementations.
+## Immediate Rollback Procedure
 
-## Rollback Scenarios
-
-### BatchRebalancer-Specific Rollback
-
-#### Critical Issues Requiring Immediate Rollback:
-- Incorrect NAV calculations causing value loss
-- Trade execution failures causing vault lockup  
-- Oracle manipulation vulnerabilities
-- Window processing causing state corruption
-
-#### Rollback Steps:
-```bash
-# 1. Pause the rebalancer immediately
-cast send <REBALANCER_ADDRESS> "pause()" --private-key $GOVERNOR_KEY
-
-# 2. Revoke keeper roles to prevent window processing
-cast send <REBALANCER_ADDRESS> "revokeRole(bytes32,address)" \
-  $(cast keccak "KEEPER_ROLE") <KEEPER_ADDRESS> --private-key $GOVERNOR_KEY
-
-# 3. Remove rebalancer role from vaults
-cast send <VAULT_ADDRESS> "revokeRole(bytes32,address)" \
-  $(cast keccak "REBALANCER_ROLE") <REBALANCER_ADDRESS> --private-key $GOVERNOR_KEY
-
-# 4. If mid-window, manually settle pending requests
-# Check last processed window for each vault
-cast call <REBALANCER_ADDRESS> "lastProcessedWindow(address)" <VAULT_ADDRESS>
-```
-
-### TradeAdapter-Specific Rollback
-
-#### Critical Issues Requiring Immediate Rollback:
-- Router exploitation or unauthorized external calls
-- Token approval vulnerabilities
-- Failed trade execution causing fund lock
-- Slippage protection bypass
-- Reentrancy attack successful
-
-#### Rollback Steps:
-```bash
-# 1. Revoke REBALANCER_ROLE from TradeAdapter
-cast send <TRADE_ADAPTER> "revokeRole(bytes32,address)" \
-  $(cast keccak "REBALANCER_ROLE") <BATCH_REBALANCER> --private-key $ADMIN_KEY
-
-# 2. Deploy MockTradeAdapter for emergency operations
-forge create contracts/mocks/MockTradeAdapter.sol:MockTradeAdapter \
-  --private-key $DEPLOYER_KEY
-
-# 3. Update BatchRebalancer to use MockTradeAdapter
-# Note: BatchRebalancer may need upgrade to support adapter swap
-
-# 4. Recover any stuck tokens from TradeAdapter
-cast send <TRADE_ADAPTER> "recoverToken(address,address)" \
-  <TOKEN_ADDRESS> <RECOVERY_ADDRESS> --private-key $ADMIN_KEY
-
-# 5. Remove router allowlist entries if compromised
-cast send <TRADE_ADAPTER> "setRouterAllowlist(address,bool)" \
-  <COMPROMISED_ROUTER> false --private-key $GOVERNOR_KEY
-```
-
-#### Code Rollback:
-```bash
-# Remove TradeAdapter files
-rm contracts/adapters/TradeAdapter.sol
-rm test/TradeAdapter.t.sol
-rm contracts/interfaces/AggregatorV3Interface.sol
-
-# Revert Deploy.s.sol changes
-git checkout HEAD -- script/Deploy.s.sol
-
-# Update BatchRebalancer to remove TradeAdapter dependency
-# Comment out line 7: import {ITradeAdapter}
-```
-
-### OracleModule-Specific Rollback
-
-#### Critical Issues Requiring Immediate Rollback:
-- Incorrect price normalization causing NAV miscalculation
-- Chainlink feed integration failures
-- Decimal conversion errors leading to value loss
-- Health check logic blocking all price fetches
-- Gas costs exceeding 100k for batch operations
-
-#### Rollback Steps:
-```bash
-# 1. Deploy emergency MockOracle as temporary replacement
-# MockOracle provides hardcoded safe prices for critical operations
-
-# 2. Update BatchRebalancer to use MockOracle
-cast send <BATCH_REBALANCER> "setOracleModule(address)" <MOCK_ORACLE> --private-key $ADMIN_KEY
-
-# 3. Verify price feeds working
-cast call <MOCK_ORACLE> "getUsdPrice(address)" <WETH_ADDRESS>
-
-# 4. Deploy fixed OracleModule
-forge script script/Deploy.s.sol --rpc-url $RPC --broadcast
-
-# 5. Re-register Chainlink feeds
-cast send <NEW_ORACLE> "registerFeed(address,address)" <TOKEN> <FEED> --private-key $ADMIN_KEY
-
-# 6. Switch BatchRebalancer to new Oracle
-cast send <BATCH_REBALANCER> "setOracleModule(address)" <NEW_ORACLE> --private-key $ADMIN_KEY
-```
-
-### 1. Pre-Deployment Rollback (Development)
-If issues are discovered during testing before mainnet deployment:
+### 1. Emergency Pause (< 1 minute)
+If issues are detected post-deployment, immediately pause the KeeperGate:
 
 ```bash
-# Revert to previous commit
-git revert HEAD
-
-# Or reset to specific commit before PieFactory implementation
-git reset --hard <commit-hash-before-piefactory>
-
-# Force push if needed (only on feature branches)
-git push --force origin <branch-name>
+# As governor, pause KeeperGate operations
+cast send <KEEPER_GATE_ADDRESS> \
+  "pause()" \
+  --private-key $GOVERNOR_PRIVATE_KEY \
+  --rpc-url $RPC_URL
 ```
 
-### 2. Post-Deployment Rollback (Testnet)
-If issues are discovered after testnet deployment:
+This prevents any window processing while investigating issues.
 
-#### Option A: Emergency Pause
-```solidity
-// Immediate action - pause the factory
-PieFactory.pause()
+### 2. Git Rollback (Development)
+```bash
+# Save current work
+git stash
+
+# Revert to commit before KeeperGate implementation
+git revert HEAD~1
+
+# Or reset to specific commit (use with caution)
+git reset --hard <commit-before-keepergate>
 ```
 
-#### Option B: Deploy Fixed Version
-1. Fix the issues in the code
-2. Deploy new PieFactory instance
-3. Update frontend to point to new factory address
-4. Announce deprecation of old factory
+### 3. Contract Rollback Options
 
-### 3. Post-Deployment Rollback (Mainnet)
-If critical issues are discovered after mainnet deployment:
+#### Option A: Disable via Pause (Recommended)
+- Keep KeeperGate paused indefinitely
+- Windows can still be triggered manually via direct BatchRebalancer calls
+- No code changes required
 
-#### Immediate Response:
-1. **Pause Factory Operations**
-   ```javascript
-   // Using governor account
-   await factory.pause();
-   ```
-
-2. **Notify Users**
-   - Post announcement on official channels
-   - Update frontend with warning banner
-
-#### Recovery Options:
-
-**Option 1: Minimal Fix**
-- If issue is in admin functions only, deploy patch
-- Update governor to point to new implementation
-
-**Option 2: Full Migration**
-- Deploy new factory with fixes
-- Provide migration path for existing pies
-- Update all integrations
-
-## Data Recovery
-
-### Existing Pies
-Since pies are separate contracts deployed via proxy:
-- Existing pies remain functional
-- Can be managed independently of factory
-
-### State Recovery
-```javascript
-// Script to extract deployed pies from old factory
-const oldFactory = await ethers.getContractAt("PieFactory", OLD_FACTORY_ADDRESS);
-const allPies = await oldFactory.getAllPies();
-
-// Store for migration reference
-fs.writeFileSync('deployed-pies.json', JSON.stringify(allPies));
+#### Option B: Deploy New Contracts
+```bash
+# Deploy new versions without KeeperGate dependency
+forge script script/Deploy_NoKeeper.s.sol \
+  --rpc-url $RPC_URL \
+  --broadcast
 ```
 
-## Monitoring & Detection
+#### Option C: Upgrade Pattern (if upgradeable)
+- Deploy new implementation without keeper dependency
+- Upgrade proxy to point to new implementation
 
-### Key Metrics to Monitor
-- Gas usage anomalies
-- Failed transactions rate
-- Unexpected revert reasons
-- Abnormal pie creation patterns
+## Rollback Triggers
 
-### Alert Thresholds
-- Gas usage > 500k for createPie
-- Failed transaction rate > 10%
-- Any unauthorized access attempts
+Initiate rollback if any of these conditions occur:
 
-## Communication Plan
+1. **Critical Security Issue**
+   - Unauthorized window execution
+   - Funds at risk
+   - Reentrancy detected
 
-1. **Internal Team**: Immediate Slack/Discord notification
-2. **Users**: Twitter/Discord announcement within 15 minutes
-3. **Partners**: Direct communication within 1 hour
-4. **Post-Mortem**: Published within 48 hours
+2. **Functional Failures**
+   - Windows not processing at scheduled times
+   - Double execution occurring
+   - Grace period not functioning
 
-## Testing Rollback
+3. **Integration Issues**
+   - BatchRebalancer calls failing
+   - PieVault state corruption
+   - Role permission errors
 
-### Simulation Steps
-1. Deploy to testnet
-2. Create several test pies
-3. Simulate critical failure
-4. Execute pause procedure
-5. Deploy fixed version
-6. Verify migration path
+## Recovery Steps
 
-## Rollback Checklist
+### Phase 1: Stabilize (0-15 minutes)
+1. Pause KeeperGate
+2. Alert team via emergency channels
+3. Document issue with timestamps
+4. Check for affected pies/users
 
-- [ ] Identify the issue severity (Critical/High/Medium/Low)
-- [ ] Pause factory if critical
-- [ ] Notify team members
-- [ ] Document issue details
-- [ ] Prepare fix or rollback code
-- [ ] Test fix on testnet
-- [ ] Communicate with users
-- [ ] Deploy fix/rollback
-- [ ] Verify system stability
-- [ ] Publish post-mortem
+### Phase 2: Diagnose (15-60 minutes)
+1. Review transaction logs
+2. Check event emissions
+3. Verify state variables
+4. Test isolated components
 
-## Contact Information
+### Phase 3: Fix or Rollback (1-4 hours)
+1. If fixable: Deploy patch
+2. If not fixable: Execute full rollback
+3. Update documentation
+4. Notify stakeholders
+
+## Manual Window Processing (Fallback)
+
+While KeeperGate is disabled, process windows manually:
+
+```bash
+# Direct call to BatchRebalancer
+cast send <BATCH_REBALANCER_ADDRESS> \
+  "processWindow(address)" \
+  <PIE_VAULT_ADDRESS> \
+  --private-key $ADMIN_PRIVATE_KEY \
+  --rpc-url $RPC_URL
+```
+
+## Monitoring During Rollback
+
+Monitor these metrics:
+- Gas usage spikes
+- Failed transactions
+- Event emissions
+- User complaints
+- TVL changes
+
+## Post-Rollback Actions
+
+1. **Root Cause Analysis**
+   - Document what went wrong
+   - Create test cases for the issue
+   - Update deployment procedures
+
+2. **Communication**
+   - Notify users of status
+   - Update documentation
+   - Post-mortem report
+
+3. **Prevention**
+   - Add missing tests
+   - Improve monitoring
+   - Update validation checklist
+
+## Emergency Contacts
 
 - Technical Lead: [Contact Info]
 - Security Team: [Contact Info]
-- Communications: [Contact Info]
-- On-Call Engineer: [Contact Info]
+- DevOps: [Contact Info]
+- Community Manager: [Contact Info]
+
+## Rollback Testing
+
+Before production deployment, test rollback procedures:
+
+```bash
+# Deploy to testnet
+./deploy_testnet.sh
+
+# Simulate failure
+./simulate_failure.sh
+
+# Execute rollback
+./rollback_testnet.sh
+
+# Verify system stability
+./verify_rollback.sh
+```
 
 ## Recovery Time Objectives
 
-- **Detection to Response**: < 15 minutes
-- **Response to Mitigation**: < 1 hour
-- **Mitigation to Resolution**: < 4 hours
-- **Post-Mortem Publication**: < 48 hours
+- **RTO (Recovery Time Objective)**: 15 minutes for pause, 4 hours for full rollback
+- **RPO (Recovery Point Objective)**: No data loss expected (blockchain immutability)
+
+## Approval Requirements
+
+Rollback must be approved by:
+- [ ] Technical Lead
+- [ ] Security Officer
+- [ ] At least one Governor role holder
+
+## Rollback Completion Checklist
+
+- [ ] System stabilized
+- [ ] Issue documented
+- [ ] Users notified
+- [ ] Manual processing available
+- [ ] Post-mortem scheduled
+- [ ] Preventive measures identified

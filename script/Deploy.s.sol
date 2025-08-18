@@ -7,6 +7,7 @@ import {PieVault} from "../contracts/PieVault.sol";
 import {BatchRebalancer} from "../contracts/BatchRebalancer.sol";
 import {OracleModule} from "../contracts/core/OracleModule.sol";
 import {TradeAdapter} from "../contracts/adapters/TradeAdapter.sol";
+import {KeeperGate} from "../contracts/KeeperGate.sol";
 import {BaseFeedRegistry} from "./config/BaseFeedRegistry.sol";
 
 /**
@@ -25,19 +26,18 @@ contract Deploy is Script {
     address public oracleModule;
     address public batchRebalancer;
     address public tradeAdapter;
+    address public keeperGate;
     
     function run() external {
-        // PSEUDOCODE:
-        // 1. Load deployer key and start broadcast
-        // 2. Deploy OracleModule
-        // 3. Configure Oracle with Chainlink feeds
-        // 4. Deploy TradeAdapter (when implemented)
-        // 5. Deploy BatchRebalancer with Oracle and TradeAdapter
-        // 6. Deploy PieVault implementation
-        // 7. Deploy PieFactory with vault implementation
-        // 8. Set initial token allowlist
-        // 9. Configure roles and permissions
-        // 10. Stop broadcast and log addresses
+        // Deployment steps:
+        // 1. Deploy OracleModule and configure feeds
+        // 2. Deploy TradeAdapter
+        // 3. Deploy BatchRebalancer
+        // 4. Deploy PieVault implementation
+        // 5. Deploy PieFactory with vault implementation
+        // 6. Deploy KeeperGate
+        // 7. Configure allowlist and roles
+        // 8. Verify deployment
         
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address deployer = vm.addr(deployerPrivateKey);
@@ -59,15 +59,23 @@ contract Deploy is Script {
         TradeAdapter(tradeAdapter).grantRole(keccak256("REBALANCER"), batchRebalancer);
         console.log("Granted REBALANCER_ROLE to BatchRebalancer");
         
-        // Step 4: Deploy PieVault implementation (TODO)
-        // vaultImplementation = address(new PieVault());
+        // Step 4: Deploy PieVault implementation
+        vaultImplementation = address(new PieVault());
+        console.log("PieVault implementation deployed at:", vaultImplementation);
         
-        // Step 5: Deploy PieFactory (TODO - needs vault implementation)
-        // factory = address(new PieFactory());
-        // PieFactory(factory).setVaultImplementation(vaultImplementation);
+        // Step 5: Deploy PieFactory with vault implementation
+        factory = address(new PieFactory(vaultImplementation, deployer));
+        console.log("PieFactory deployed at:", factory);
         
-        // Step 6: Configure initial allowlist (TODO)
-        // _configureAllowlist();
+        // Step 6: Deploy KeeperGate
+        keeperGate = address(new KeeperGate(batchRebalancer, deployer));
+        console.log("KeeperGate deployed at:", keeperGate);
+        
+        // Step 7: Configure initial allowlist
+        _configureAllowlist();
+        
+        // Step 8: Verify deployment
+        _verifyDeployment();
         
         vm.stopBroadcast();
         
@@ -113,11 +121,34 @@ contract Deploy is Script {
      * @dev Configure initial token allowlist
      */
     function _configureAllowlist() internal {
-        // TODO: Implement when PieFactory is deployed
-        // PSEUDOCODE:
-        // PieFactory(factory).setGlobalAllowlist(USDC, true);
-        // PieFactory(factory).setGlobalAllowlist(WETH, true);
-        // Add more tokens as needed
+        // Set initial allowlist for common tokens
+        PieFactory(factory).setGlobalAllowlist(USDC, true);
+        PieFactory(factory).setGlobalAllowlist(WETH, true);
+        console.log("Configured initial token allowlist");
+        
+        // TODO: Add more tokens based on requirements
+        // Additional tokens can be added post-deployment via governance
+    }
+    
+    /**
+     * @dev Verify deployment configuration
+     */
+    function _verifyDeployment() internal view {
+        // Verify PieFactory configuration
+        require(PieFactory(factory).vaultImplementation() == vaultImplementation, "Invalid vault implementation");
+        
+        // Verify BatchRebalancer configuration
+        require(address(BatchRebalancer(batchRebalancer).oracle()) == oracleModule, "Invalid oracle in rebalancer");
+        require(address(BatchRebalancer(batchRebalancer).tradeAdapter()) == tradeAdapter, "Invalid trade adapter");
+        
+        // Verify role assignments
+        bytes32 REBALANCER_ROLE = keccak256("REBALANCER");
+        require(TradeAdapter(tradeAdapter).hasRole(REBALANCER_ROLE, batchRebalancer), "Rebalancer role not granted");
+        
+        // Verify KeeperGate configuration
+        require(address(KeeperGate(keeperGate).rebalancer()) == batchRebalancer, "Invalid rebalancer in KeeperGate");
+        
+        console.log("Deployment verification successful!");
     }
     
     /**
@@ -131,6 +162,7 @@ contract Deploy is Script {
         console.log("BatchRebalancer:", batchRebalancer);
         console.log("Vault Implementation:", vaultImplementation);
         console.log("PieFactory:", factory);
+        console.log("KeeperGate:", keeperGate);
         console.log("==================================");
     }
 }

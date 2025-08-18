@@ -1,85 +1,143 @@
-# OracleModule Validation Checklist
+# BasePie MVP - KeeperGate Implementation Validation Checklist
 
-## Build & Compilation ✅
+## Pre-Deployment Validation
+
+### 🔧 Build & Compilation
 ```bash
+# Install dependencies (if needed)
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+
 # Build all contracts
 forge build
 
-# Expected output: Successful compilation with no errors
+# Expected: Successful compilation with no errors
 ```
 
-## Test Suite ✅
+### 🧪 Test Suite
 ```bash
-# Run unit tests
-forge test --match-contract OracleModuleTest --no-match-test Fork -vv
+# Run all tests
+forge test
 
-# Run fork tests (requires Base RPC)
-forge test --fork-url https://mainnet.base.org --match-test Fork -vv
+# Run specific KeeperGate tests with verbosity
+forge test --match-contract KeeperGateTest -vvv
 
-# Gas report
-forge test --match-contract OracleModuleTest --gas-report
+# Run with gas reporting
+forge test --gas-report
+
+# Expected: All tests pass, especially:
+# ✅ testOpenWindow_Success
+# ✅ testOpenWindow_RevertsTooEarly  
+# ✅ testOpenWindow_RevertsTooLate
+# ✅ testOpenWindow_RevertsDoubleExecution
+# ✅ testOpenWindow_AnyoneCanExecuteAfterGrace
+# ✅ testOpenWindow_RevertsWhenPaused
+# ✅ testSetGracePeriod_OnlyGovernor
+# ✅ testFuzz_WindowTimingBoundaries
 ```
 
-### Test Coverage
-- [x] Constructor initialization (admin roles, default thresholds)
-- [x] USDC special case handling ($1 hardcoded)
-- [x] Single token price fetching
-- [x] Batch price fetching
-- [x] Decimal normalization (6, 8, 18 decimals)
-- [x] Staleness detection (30 min threshold)
-- [x] Price deviation monitoring (2% threshold)
-- [x] Admin access control
-- [x] Feed registration
-- [x] Fork tests with real Chainlink feeds
-
-## Security Checks ✅
+### 📝 Static Analysis
 ```bash
-# Static analysis
-slither contracts/core/OracleModule.sol --print human-summary
+# Run slither for security analysis (if installed)
+slither contracts/KeeperGate.sol --print human-summary
 
-# Check for common vulnerabilities
-forge test --match-contract OracleModuleTest --fuzz-runs 1000
+# Check for common issues
+forge inspect KeeperGate storage-layout
+forge inspect KeeperGate abi
 ```
 
-### Security Considerations
-- [x] Access control on admin functions
-- [x] Input validation on all external functions
-- [x] Integer overflow protection (Solidity 0.8.24)
-- [x] Reentrancy not applicable (view functions only)
-- [x] Price manipulation protection (staleness + deviation checks)
-
-## Gas Optimization ✅
+### 🔍 Coverage Check
 ```bash
-# Verify gas usage for batch operations
-forge test --match-test test_GetUsdPrices_GasEfficiency -vvv
+# Generate coverage report
+forge coverage --contracts contracts/KeeperGate.sol
+
+# Expected: >90% coverage for KeeperGate
 ```
 
-### Gas Optimizations Implemented
-- [x] Cached feed decimals to avoid repeated external calls
-- [x] Batch price fetching for multiple tokens
-- [x] USDC special case avoids oracle calls
-- [x] Efficient decimal normalization
+## Deployment Validation
 
-## Integration Testing ✅
+### 🚀 Deploy to Testnet
 ```bash
-# Deploy to local fork
-forge script script/Deploy.s.sol --fork-url https://mainnet.base.org --private-key $PRIVATE_KEY
+# Set environment variables
+export PRIVATE_KEY="your_deployer_private_key"
+export RPC_URL_BASE_SEPOLIA="https://sepolia.base.org"
 
-# Verify deployment
-cast call $ORACLE_ADDRESS "stalenessThreshold()(uint256)" --rpc-url https://mainnet.base.org
-cast call $ORACLE_ADDRESS "maxDeviationBps()(uint256)" --rpc-url https://mainnet.base.org
+# Deploy to Base Sepolia
+forge script script/Deploy.s.sol:Deploy \
+  --rpc-url $RPC_URL_BASE_SEPOLIA \
+  --broadcast \
+  --verify \
+  -vvvv
+
+# Expected outputs:
+# ✅ OracleModule deployed
+# ✅ TradeAdapter deployed
+# ✅ BatchRebalancer deployed
+# ✅ PieVault implementation deployed
+# ✅ PieFactory deployed
+# ✅ KeeperGate deployed
+# ✅ Deployment verification successful!
 ```
 
-## Documentation ✅
-- [x] NatSpec comments on all public functions
-- [x] Clear error messages
-- [x] Event definitions for monitoring
-- [x] README updates with Oracle information
+### 🔐 Post-Deployment Verification
+```bash
+# Verify contracts on Basescan
+forge verify-contract <KEEPER_GATE_ADDRESS> \
+  contracts/KeeperGate.sol:KeeperGate \
+  --chain base-sepolia
 
-## Pre-PR Checklist
-- [ ] All tests passing
-- [ ] No compiler warnings
-- [ ] Gas usage within acceptable limits (<100k for 10 tokens)
-- [ ] Documentation complete
-- [ ] Security review completed
-- [ ] Fork test successful on Base mainnet
+# Check role assignments
+cast call <KEEPER_GATE_ADDRESS> \
+  "hasRole(bytes32,address)" \
+  $(cast keccak "KEEPER") <KEEPER_ADDRESS> \
+  --rpc-url $RPC_URL_BASE_SEPOLIA
+```
+
+## Integration Testing
+
+### 🔄 End-to-End Window Processing
+1. Create a test pie via PieFactory
+2. Wait for window time (or warp in test)
+3. Call `keeperGate.openWindow(pieAddress)` as keeper
+4. Verify `lastProcessedWindow` updated
+5. Verify rebalancer was called
+6. Attempt double execution (should fail)
+
+### ⏰ Grace Period Testing
+1. Wait for window time + grace period
+2. Call `openWindow` as non-keeper address
+3. Verify successful execution
+
+### 🛑 Emergency Pause Testing
+1. Call `pause()` as governor
+2. Attempt `openWindow` (should revert)
+3. Call `unpause()` as governor
+4. Verify normal operation restored
+
+## Security Checklist
+
+- [x] No reentrancy vulnerabilities (ReentrancyGuard used)
+- [x] Access control properly configured (roles checked)
+- [x] Integer overflow protection (uint40 bounds check)
+- [x] External call safety (check-effects-interactions)
+- [x] Pausable for emergency situations
+- [x] Idempotent window processing
+- [x] No unbounded loops
+- [x] Events emitted for all state changes
+
+## Gas Optimization Check
+
+Expected gas costs:
+- `openWindow`: ~150,000 gas (including rebalancer call)
+- `setGracePeriod`: ~30,000 gas
+- `pause/unpause`: ~25,000 gas
+
+## Final Validation
+
+- [ ] All tests pass
+- [ ] Deployment successful on testnet
+- [ ] Contracts verified on block explorer
+- [ ] Roles properly configured
+- [ ] Integration test with actual PieVault successful
+- [ ] Gas costs within acceptable range
+- [ ] No critical security issues found
