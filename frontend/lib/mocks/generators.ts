@@ -1,7 +1,7 @@
 import { faker } from '@faker-js/faker'
 import type { MockPie, MockAllocation, MockPosition, MockTransaction, MockWindow } from './types'
 
-const TOKEN_LIST = [
+export const TOKEN_LIST = [
   { symbol: 'WETH', name: 'Wrapped Ether', address: '0x4200000000000000000000000000000000000006', price: 3500 },
   { symbol: 'USDC', name: 'USD Coin', address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', price: 1 },
   { symbol: 'WBTC', name: 'Wrapped Bitcoin', address: '0x68f180fcCe6836688e9084f035309E29Bf0A2095', price: 65000 },
