@@ -3,7 +3,7 @@ pragma solidity 0.8.24;
 
 import {IOracleModule} from "../interfaces/IOracleModule.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import {AggregatorV3Interface} from "../interfaces/AggregatorV3Interface.sol";
 
 /**
  * @title OracleModule

@@ -17,6 +17,9 @@ Expected: All contracts compile without errors
 
 ### 2. Run Tests
 ```bash
+# Test TradeAdapter (NEW)
+forge test --match-contract TradeAdapterTest -vv
+
 # Test BatchRebalancer
 forge test --match-contract BatchRebalancerTest -vv
 
@@ -33,6 +36,7 @@ forge test --match-contract PieVaultInvariantTest
 forge test
 ```
 Expected test coverage:
+- TradeAdapter: 13 tests (✅ 9 passing, 4 require mainnet fork)
 - BatchRebalancer: 8 tests (✅ all passing)
 - PieFactory: 7 tests (4 passing currently)
 - PieVault: 11 tests (scaffolded, ready for TDD)

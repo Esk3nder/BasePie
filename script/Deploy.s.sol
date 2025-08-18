@@ -3,9 +3,10 @@ pragma solidity 0.8.24;
 
 import {Script, console} from "forge-std/Script.sol";
 import {PieFactory} from "../contracts/PieFactory.sol";
-import {PieVault} from "../contracts/core/PieVault.sol";
-import {BatchRebalancer} from "../contracts/core/BatchRebalancer.sol";
+import {PieVault} from "../contracts/PieVault.sol";
+import {BatchRebalancer} from "../contracts/BatchRebalancer.sol";
 import {OracleModule} from "../contracts/core/OracleModule.sol";
+import {TradeAdapter} from "../contracts/adapters/TradeAdapter.sol";
 import {BaseFeedRegistry} from "./config/BaseFeedRegistry.sol";
 
 /**
@@ -23,7 +24,7 @@ contract Deploy is Script {
     address public vaultImplementation;
     address public oracleModule;
     address public batchRebalancer;
-    address public tradeAdapter; // TODO: Implement TradeAdapter
+    address public tradeAdapter;
     
     function run() external {
         // PSEUDOCODE:
@@ -46,11 +47,17 @@ contract Deploy is Script {
         // Step 1: Deploy OracleModule
         _deployOracleModule(deployer);
         
-        // Step 2: Deploy TradeAdapter (TODO)
-        // tradeAdapter = address(new TradeAdapter());
+        // Step 2: Deploy TradeAdapter
+        tradeAdapter = address(new TradeAdapter(deployer, address(0))); // Will set rebalancer after BatchRebalancer deployment
+        console.log("TradeAdapter deployed at:", tradeAdapter);
         
-        // Step 3: Deploy BatchRebalancer (TODO - needs TradeAdapter)
-        // batchRebalancer = address(new BatchRebalancer(oracleModule, tradeAdapter));
+        // Step 3: Deploy BatchRebalancer
+        batchRebalancer = address(new BatchRebalancer(oracleModule, tradeAdapter));
+        console.log("BatchRebalancer deployed at:", batchRebalancer);
+        
+        // Step 3.5: Grant REBALANCER_ROLE to BatchRebalancer
+        TradeAdapter(tradeAdapter).grantRole(keccak256("REBALANCER"), batchRebalancer);
+        console.log("Granted REBALANCER_ROLE to BatchRebalancer");
         
         // Step 4: Deploy PieVault implementation (TODO)
         // vaultImplementation = address(new PieVault());

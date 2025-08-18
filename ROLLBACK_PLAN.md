@@ -31,6 +31,51 @@ cast send <VAULT_ADDRESS> "revokeRole(bytes32,address)" \
 cast call <REBALANCER_ADDRESS> "lastProcessedWindow(address)" <VAULT_ADDRESS>
 ```
 
+### TradeAdapter-Specific Rollback
+
+#### Critical Issues Requiring Immediate Rollback:
+- Router exploitation or unauthorized external calls
+- Token approval vulnerabilities
+- Failed trade execution causing fund lock
+- Slippage protection bypass
+- Reentrancy attack successful
+
+#### Rollback Steps:
+```bash
+# 1. Revoke REBALANCER_ROLE from TradeAdapter
+cast send <TRADE_ADAPTER> "revokeRole(bytes32,address)" \
+  $(cast keccak "REBALANCER_ROLE") <BATCH_REBALANCER> --private-key $ADMIN_KEY
+
+# 2. Deploy MockTradeAdapter for emergency operations
+forge create contracts/mocks/MockTradeAdapter.sol:MockTradeAdapter \
+  --private-key $DEPLOYER_KEY
+
+# 3. Update BatchRebalancer to use MockTradeAdapter
+# Note: BatchRebalancer may need upgrade to support adapter swap
+
+# 4. Recover any stuck tokens from TradeAdapter
+cast send <TRADE_ADAPTER> "recoverToken(address,address)" \
+  <TOKEN_ADDRESS> <RECOVERY_ADDRESS> --private-key $ADMIN_KEY
+
+# 5. Remove router allowlist entries if compromised
+cast send <TRADE_ADAPTER> "setRouterAllowlist(address,bool)" \
+  <COMPROMISED_ROUTER> false --private-key $GOVERNOR_KEY
+```
+
+#### Code Rollback:
+```bash
+# Remove TradeAdapter files
+rm contracts/adapters/TradeAdapter.sol
+rm test/TradeAdapter.t.sol
+rm contracts/interfaces/AggregatorV3Interface.sol
+
+# Revert Deploy.s.sol changes
+git checkout HEAD -- script/Deploy.s.sol
+
+# Update BatchRebalancer to remove TradeAdapter dependency
+# Comment out line 7: import {ITradeAdapter}
+```
+
 ### OracleModule-Specific Rollback
 
 #### Critical Issues Requiring Immediate Rollback:
