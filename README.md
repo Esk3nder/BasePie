@@ -59,7 +59,12 @@ Base Pies is a non-custodial, window-rebalanced portfolio vault system built on 
   - Slippage protection and access control
   - Token approval management with forceApprove
 - **OracleModule**: Chainlink price feeds integration for Base network with health monitoring, decimal normalization, and USDC special handling
-- **KeeperGate**: Window scheduling and automation triggers (pending implementation)
+- **KeeperGate** ✅: Window scheduling and automation triggers
+  - Daily window processing at configured UTC time
+  - ±5 minute tolerance for keeper execution
+  - Grace period fallback for anyone to execute (default 30 min)
+  - Pausable operations for emergency stops
+  - Idempotent window processing prevents double execution
 
 ## Development
 
