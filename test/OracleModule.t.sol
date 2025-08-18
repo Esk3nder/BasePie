@@ -4,7 +4,7 @@ pragma solidity 0.8.24;
 import {Test, console2} from "forge-std/Test.sol";
 import {OracleModule} from "../contracts/core/OracleModule.sol";
 import {IOracleModule} from "../contracts/interfaces/IOracleModule.sol";
-import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import {AggregatorV3Interface} from "../contracts/interfaces/AggregatorV3Interface.sol";
 
 /**
  * @title OracleModule Test Suite

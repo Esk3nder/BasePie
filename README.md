@@ -53,9 +53,13 @@ Base Pies is a non-custodial, window-rebalanced portfolio vault system built on 
 - **PieFactory**: Deploys new pie vaults with configured parameters
 - **PieVault**: ERC-4626 async vault with request/claim lifecycle
 - **BatchRebalancer**: Computes deltas and executes rebalancing trades
-- **TradeAdapter**: Interfaces with Uniswap Universal Router and 0x
+- **TradeAdapter** ✅: Secure DEX integration layer for trade execution
+  - Uniswap Universal Router integration
+  - 0x aggregator support with router allowlisting
+  - Slippage protection and access control
+  - Token approval management with forceApprove
 - **OracleModule**: Chainlink price feeds integration for Base network with health monitoring, decimal normalization, and USDC special handling
-- **KeeperGate**: Window scheduling and automation triggers
+- **KeeperGate**: Window scheduling and automation triggers (pending implementation)
 
 ## Development
 
