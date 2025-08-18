@@ -38,7 +38,7 @@ contract KeeperGateTest is Test {
         PieVault vaultImpl = new PieVault();
         
         // Deploy factory
-        factory = new PieFactory(address(vaultImpl), admin);
+        factory = new PieFactory(address(vaultImpl));
         
         // Deploy KeeperGate
         keeperGate = new KeeperGate(address(rebalancer), admin);

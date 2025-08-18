@@ -41,9 +41,9 @@ contract PieVaultTest is Test {
         // Deploy mock USDC
         usdc = new MockUSDC();
         
-        // Deploy factory and vault implementation
-        factory = new PieFactory();
+        // Deploy vault implementation and factory
         vaultImpl = new PieVault();
+        factory = new PieFactory(address(vaultImpl));
         
         // Setup allowlist
         vm.prank(owner);

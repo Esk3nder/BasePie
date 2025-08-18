@@ -27,7 +27,9 @@ contract PieFactory is IPieFactory, AccessControl, Pausable, ReentrancyGuard {
     uint16 public constant MAX_BPS = 10_000;
     uint256 public constant MAX_ASSETS = 20;
     
-    constructor() {
+    constructor(address _vaultImplementation) {
+        require(_vaultImplementation != address(0), "Invalid vault implementation");
+        vaultImplementation = _vaultImplementation;
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(GOVERNOR_ROLE, msg.sender);
     }

@@ -22,16 +22,12 @@ contract PieFactoryTest is Test {
     event GlobalAllowlistUpdated(address indexed token, bool allowed);
     
     function setUp() public {
-        // Deploy factory
-        vm.prank(governor);
-        factory = new PieFactory();
-        
         // Deploy vault implementation
         vaultImpl = new PieVault();
         
-        // Set up vault implementation
+        // Deploy factory with vault implementation
         vm.prank(governor);
-        factory.setVaultImplementation(address(vaultImpl));
+        factory = new PieFactory(address(vaultImpl));
         
         // Set up allowlist
         vm.startPrank(governor);

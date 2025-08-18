@@ -113,7 +113,7 @@ contract KeeperGate is IKeeperGate, AccessControl, Pausable, ReentrancyGuard {
      */
     function _calculateCurrentWindow(address pie) internal view returns (uint40) {
         // Get the window start time from the pie vault
-        uint32 windowStartTimeUTC = IPieVault(pie).rebalanceWindowStartSecUTC();
+        uint32 windowStartTimeUTC = uint32(IPieVault(pie).rebalanceWindowStartSecUTC());
         
         // Calculate days since epoch
         uint256 daysSinceEpoch = block.timestamp / 86400;
@@ -136,7 +136,7 @@ contract KeeperGate is IKeeperGate, AccessControl, Pausable, ReentrancyGuard {
      * @dev Validates that current time is within window opening tolerance
      */
     function _isWithinWindowTolerance(address pie, uint40 windowId) internal view returns (bool) {
-        uint32 windowStartTimeUTC = IPieVault(pie).rebalanceWindowStartSecUTC();
+        uint32 windowStartTimeUTC = uint32(IPieVault(pie).rebalanceWindowStartSecUTC());
         
         // Calculate the exact window time
         uint256 windowTime = (uint256(windowId) * 86400) + windowStartTimeUTC;
@@ -160,7 +160,7 @@ contract KeeperGate is IKeeperGate, AccessControl, Pausable, ReentrancyGuard {
      * @dev Checks if grace period has expired for anyone to execute
      */
     function _isGracePeriodExpired(address pie, uint40 windowId) internal view returns (bool) {
-        uint32 windowStartTimeUTC = IPieVault(pie).rebalanceWindowStartSecUTC();
+        uint32 windowStartTimeUTC = uint32(IPieVault(pie).rebalanceWindowStartSecUTC());
         
         // Calculate the exact window time
         uint256 windowTime = (uint256(windowId) * 86400) + windowStartTimeUTC;
