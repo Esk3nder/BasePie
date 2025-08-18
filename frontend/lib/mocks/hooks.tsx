@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useMockConfig } from '@/components/MockProvider'
-import { mockStore, mockPieFactory, mockPieVault, mockUSDC, mockPermit2 } from './contracts'
+import { mockStore, mockPieFactory, mockPieVault, mockToken } from './contracts'
 import { generatePositions } from './generators'
-import type { MockPie, MockPosition, MockTransaction, MockAllocation } from './types'
+import type { MockPie, MockPosition, MockAllocation } from './types'
 
 // Helper to apply mock delay
 const useMockDelay = () => {
@@ -459,7 +459,7 @@ export function useMockBalance(address?: string) {
     await delay()
 
     try {
-      const bal = await mockUSDC.balanceOf(address)
+      const bal = await mockToken.balanceOf(address)
       setBalance(bal)
     } catch (e) {
       setError(e as Error)
